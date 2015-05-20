@@ -3,6 +3,7 @@ package jdbc;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -12,6 +13,8 @@ import org.sqlite.SQLiteConfig;
 public class PruebaConexion {
 	public static final String DB_URL = "jdbc:sqlite:/home/matinal/sqlite/ejemplo";
 	public static final String DRIVER = "org.sqlite.JDBC";
+	private static String nombre;
+	private static String apellidos;
 	
 	public static void main(String[] args) {
 		try {
@@ -30,7 +33,6 @@ public class PruebaConexion {
 			ResultSet resultado=statement.executeQuery(consulta);
 			int id;
 			while(resultado.next()){
-				String nombre,apellidos;
 				id=resultado.getInt("id");
 				nombre=resultado.getString("nombre");
 				apellidos=resultado.getString("apellidos");
@@ -45,6 +47,34 @@ public class PruebaConexion {
 			int filasAfectadas2=statement.executeUpdate(consultadelete);
 			System.out.println("Filas borradas "+filasAfectadas2);
 			
+			//Vamos a usar PreparedStatement ,vamos a consultar los 5 primeros alumnos
+			consulta="select * from alumno where id=?";
+			PreparedStatement preparedStatement=conexion.prepareStatement(consulta);
+			for (int i = 1; i < 7; i++) {
+				preparedStatement.setInt(1,i);
+				resultado=preparedStatement.executeQuery();
+				while (resultado.next()) {
+					nombre=resultado.getString("nombre");
+					apellidos=resultado.getString("apellidos");
+					
+					System.out.printf("%15s %15s%n",nombre,apellidos);
+					
+				}
+			}
+			//Vamos a agrupar sentencias sql usando batch updates
+			consulta="insert into alumno(nombre,apellidos) values('?','?');";
+			preparedStatement=conexion.prepareStatement(consulta);
+			preparedStatement.setString(1,"Jose");
+			preparedStatement.setString(2,"Sanchez");
+			preparedStatement.addBatch();
+			
+			consulta="update alumno set nombre='?' where id=?;";
+			preparedStatement=conexion.prepareStatement(consulta);
+			preparedStatement.setString(1, "Otro nombre");
+			preparedStatement.setInt(2, 10);
+			preparedStatement.addBatch();
+			int[] affectedRecords=preparedStatement.executeBatch();
+			System.out.println("Registros afectados "+affectedRecords.length);
 			conexion.close();
 			System.out.println("Desconexion de la base de datos");
 		} catch (ClassNotFoundException e) {
