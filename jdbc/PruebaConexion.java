@@ -17,6 +17,7 @@ public class PruebaConexion {
 	private static String apellidos;
 	
 	public static void main(String[] args) {
+		Connection conexion=null;
 		try {
 			Class.forName(DRIVER);
 			//vamos a permitir la integridad referencial en sqlite
@@ -24,7 +25,7 @@ public class PruebaConexion {
 			SQLiteConfig config=new SQLiteConfig();
 			config.enforceForeignKeys(true);
 			
-			Connection conexion=DriverManager.getConnection(DB_URL,config.toProperties());
+			conexion=DriverManager.getConnection(DB_URL,config.toProperties());
 			System.out.println("Conectado a la base de datos");
 			//Thread.sleep(3000);//Simulo ejecuciones con la BD(3s en espera)
 			//Consulta 
@@ -62,19 +63,30 @@ public class PruebaConexion {
 				}
 			}
 			//Vamos a agrupar sentencias sql usando batch updates
-			consulta="insert into alumno(nombre,apellidos) values('?','?');";
+			consulta="insert into alumno(nombre,apellidos) values(?,?);";
 			preparedStatement=conexion.prepareStatement(consulta);
-			preparedStatement.setString(1,"Jose");
+			preparedStatement.setString(1,"Manuel");
 			preparedStatement.setString(2,"Sanchez");
 			preparedStatement.addBatch();
 			
-			consulta="update alumno set nombre='?' where id=?;";
+			consulta="update alumno set nombre=? where id=?;";
 			preparedStatement=conexion.prepareStatement(consulta);
 			preparedStatement.setString(1, "Otro nombre");
 			preparedStatement.setInt(2, 10);
 			preparedStatement.addBatch();
 			int[] affectedRecords=preparedStatement.executeBatch();
 			System.out.println("Registros afectados "+affectedRecords.length);
+			
+			//Vamos a hacer transacciones
+			//Primero preparamos la base de datos
+			conexion.setAutoCommit(false);
+			String sql1="insert into alumno(nombre,apellidos) values('Matias','Salvado');";
+			String sql2="insert into alumno(nombre,apellidos) values('Mat','Sa');";
+			statement.execute(sql1);
+			statement.execute(sql2);
+			conexion.commit();
+			
+			
 			conexion.close();
 			System.out.println("Desconexion de la base de datos");
 		} catch (ClassNotFoundException e) {
